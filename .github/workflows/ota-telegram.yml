@@ -21,7 +21,7 @@ concurrency:
 jobs:
   check-ota:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
       - name: Checkout monitor repository
@@ -67,20 +67,35 @@ jobs:
             exit 1
           fi
 
+          check_status=0
+          set +e
+
           if [ ! -s ota-prober/processed_updates.txt ] && [ "${NOTIFY_EXISTING}" != "true" ]; then
             echo "No previous OTA state found; creating a silent baseline."
             (
               cd ota-prober
-              checkota -d configs/ --jobs 4 --timeout 600 --skip-telegram
+              checkota -d configs/ --jobs 4 --timeout 2400 --skip-telegram
             ) 2>&1 | tee ota-check.log
+            check_status=${PIPESTATUS[0]}
           else
             (
               cd ota-prober
-              checkota -d configs/ --jobs 4 --timeout 600
+              checkota -d configs/ --jobs 4 --timeout 2400
             ) 2>&1 | tee ota-check.log
+            check_status=${PIPESTATUS[0]}
+          fi
+
+          set -e
+
+          if [ "${check_status}" -eq 124 ]; then
+            echo "OTA prober reached its wall-clock timeout. Partial processed state will be persisted so already-sent updates are not sent again."
+          elif [ "${check_status}" -ne 0 ]; then
+            echo "OTA prober failed with exit code ${check_status}."
+            exit "${check_status}"
           fi
 
       - name: Persist processed OTA state
+        if: always()
         run: |
           if [ -f ota-prober/processed_updates.txt ]; then
             mkdir -p data
@@ -88,6 +103,7 @@ jobs:
           fi
 
       - name: Commit updated OTA state
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
