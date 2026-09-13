@@ -71,10 +71,10 @@ jobs:
           set +e
 
           if [ ! -s ota-prober/processed_updates.txt ] && [ "${NOTIFY_EXISTING}" != "true" ]; then
-            echo "No previous OTA state found; creating a silent baseline."
+            echo "No previous OTA state found; registering a silent baseline."
             (
               cd ota-prober
-              checkota -d configs/ --jobs 4 --timeout 2400 --skip-telegram
+              checkota -d configs/ --jobs 4 --timeout 2400 --register-update
             ) 2>&1 | tee ota-check.log
             check_status=${PIPESTATUS[0]}
           else
@@ -88,7 +88,7 @@ jobs:
           set -e
 
           if [ "${check_status}" -eq 124 ]; then
-            echo "OTA prober reached its wall-clock timeout. Partial processed state will be persisted so already-sent updates are not sent again."
+            echo "OTA prober reached its wall-clock timeout. Partial processed state will be persisted so already-processed updates are not sent again."
           elif [ "${check_status}" -ne 0 ]; then
             echo "OTA prober failed with exit code ${check_status}."
             exit "${check_status}"
