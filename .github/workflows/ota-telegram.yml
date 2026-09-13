@@ -37,10 +37,11 @@ jobs:
       - name: Clone OTA prober
         run: git clone --depth 1 --branch master https://github.com/ramabondanp/transsion-ota-prober.git ota-prober
 
-      - name: Use Tecno Naman Telegram channel link
+      - name: Set Tecno Naman Telegram branding
         run: |
           sed -i 's#https://t.me/TranssionUpdatesTracker#https://t.me/tecnonamanupdate#g' ota-prober/checkota/telegram.py
-          grep -n "tecnonamanupdate" ota-prober/checkota/telegram.py
+          sed -i 's#TRANSSION Updates Tracker#Tecno Naman#g' ota-prober/checkota/telegram.py
+          grep -n -E 'author_name|author_url' ota-prober/checkota/telegram.py
 
       - name: Restore processed OTA state
         run: |
